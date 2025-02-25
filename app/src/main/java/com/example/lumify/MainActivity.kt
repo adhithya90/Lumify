@@ -66,6 +66,10 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun LumifyApp(mediaRepository: MediaRepository) {
     val navController = rememberNavController()
+    val context = LocalContext.current
+
+    // Track if we need to refresh gallery after permission change
+    var permissionJustGranted by remember { mutableStateOf(false) }
 
     // Storage permission handling
     var showPermissionDialog by remember { mutableStateOf(false) }
@@ -81,7 +85,13 @@ fun LumifyApp(mediaRepository: MediaRepository) {
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissionsMap ->
-        showPermissionDialog = permissionsMap.values.any { !it }
+        val allGranted = permissionsMap.values.all { it }
+        showPermissionDialog = !allGranted
+
+        // If permissions were just granted, set flag to refresh gallery
+        if (allGranted) {
+            permissionJustGranted = true
+        }
     }
 
     // Check permission on start
@@ -114,6 +124,14 @@ fun LumifyApp(mediaRepository: MediaRepository) {
     ) {
         composable("gallery") {
             val galleryViewModel = hiltViewModel<GalleryViewModel>()
+
+            // If permissions were just granted, trigger a reload
+            LaunchedEffect(permissionJustGranted) {
+                if (permissionJustGranted) {
+                    galleryViewModel.loadMediaItems()
+                    permissionJustGranted = false
+                }
+            }
 
             GalleryScreen(
                 viewModel = galleryViewModel,
