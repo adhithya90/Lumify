@@ -1,19 +1,29 @@
 package com.example.lumify.ui.screens
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Filter
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -28,10 +38,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import com.example.lumify.data.model.MediaItem
+import com.example.lumify.ui.components.StaggeredMediaGrid
 import com.example.lumify.ui.theme.LumifyTheme
 
 /**
  * Simple gallery screen that displays a grid of photos
+ */
+/**
+ * Redesigned gallery screen that displays photos in a Pinterest-like staggered grid
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,8 +62,39 @@ fun GalleryScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Lumify Gallery") }
+                title = { Text("My Studio") },
+                actions = {
+                    IconButton(onClick = { /* Filter action */ }) {
+                        Icon(
+                            imageVector = Icons.Default.Filter,
+                            contentDescription = "Filter"
+                        )
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = { /* Menu action */ }) {
+                        Icon(
+                            imageVector = Icons.Default.Menu,
+                            contentDescription = "Menu"
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { /* Camera/Add action */ },
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.onSurface
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Add Photo"
+                )
+            }
         }
     ) { padding ->
         Box(
@@ -60,7 +105,8 @@ fun GalleryScreen(
             if (isLoading && mediaItems.isEmpty()) {
                 // Show loading indicator
                 CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center)
+                    modifier = Modifier.align(Alignment.Center),
+                    color = MaterialTheme.colorScheme.primary
                 )
             } else if (error != null) {
                 // Show error message
@@ -83,8 +129,8 @@ fun GalleryScreen(
                         .padding(16.dp)
                 )
             } else {
-                // Show photo grid
-                PhotoGrid(
+                // Show staggered photo grid
+                StaggeredMediaGrid(
                     photos = mediaItems,
                     onPhotoClick = onPhotoClick,
                     modifier = Modifier.fillMaxSize()
@@ -94,80 +140,20 @@ fun GalleryScreen(
     }
 }
 
-/**
- * Grid of photos
- */
-@Composable
-fun PhotoGrid(
-    photos: List<MediaItem>,
-    onPhotoClick: (MediaItem) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 120.dp),
-        modifier = modifier
-    ) {
-        items(
-            items = photos,
-            key = { it.id }
-        ) { photo ->
-            PhotoItem(
-                photo = photo,
-                onClick = { onPhotoClick(photo) },
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-    }
-}
-
-/**
- * Individual photo item in the grid
- */
-@Composable
-fun PhotoItem(
-    photo: MediaItem,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .padding(2.dp)
-            .aspectRatio(1f)
-            .clip(MaterialTheme.shapes.small)
-            .clickable(onClick = onClick)
-    ) {
-        SubcomposeAsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(photo.uri)
-                .crossfade(true)
-                .build(),
-            contentDescription = photo.name,
-            contentScale = ContentScale.Crop,
-            loading = {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.padding(8.dp),
-                        strokeWidth = 2.dp
-                    )
-                }
-            },
-            modifier = Modifier.fillMaxSize()
-        )
-    }
-}
-
 @Preview(showBackground = true)
 @Composable
-fun PhotoGridPreview() {
-    LumifyTheme {
-        Box(modifier = Modifier.fillMaxSize()) {
-            // Preview would show grid with sample data
+fun GalleryScreenPreview() {
+    LumifyTheme(darkTheme = true) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
             Text(
                 text = "Gallery Preview",
-                modifier = Modifier.align(Alignment.Center)
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onBackground
             )
         }
     }

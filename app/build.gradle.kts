@@ -86,6 +86,9 @@ dependencies {
 
     // Debug
     debugImplementation(libs.bundles.compose.debug)
+
+    implementation(libs.androidx.material.icons.extended)
+
 }
 
 // Allow references to generated code
