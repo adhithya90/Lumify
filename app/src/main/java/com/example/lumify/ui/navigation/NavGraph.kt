@@ -47,7 +47,6 @@ fun LumifyNavGraph(
 
             DetailScreen(
                 mediaId = mediaId,
-                mediaRepository = mediaRepository,
                 onBackClick = { navController.popBackStack() }
             )
         }

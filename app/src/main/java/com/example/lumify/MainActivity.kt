@@ -1,5 +1,6 @@
 package com.example.lumify
 
+import android.os.Build
 import com.example.lumify.ui.screens.GalleryScreen
 import com.example.lumify.ui.screens.GalleryViewModel
 import android.os.Bundle
@@ -76,7 +77,7 @@ fun LumifyApp(mediaRepository: MediaRepository) {
     var showPermissionDialog by remember { mutableStateOf(false) }
 
     // Required permissions based on Android version
-    val permissions = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+    val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         arrayOf(android.Manifest.permission.READ_MEDIA_IMAGES)
     } else {
         arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE)
@@ -118,9 +119,52 @@ fun LumifyApp(mediaRepository: MediaRepository) {
         )
     }
 
-    // Use our NavGraph for navigation
-    LumifyNavGraph(
+    // Navigation
+    NavHost(
         navController = navController,
-        mediaRepository = mediaRepository
-    )
+        startDestination = "gallery"
+    ) {
+        composable("gallery") {
+            com.example.lumify.ui.screens.GalleryScreen(
+                onPhotoClick = { mediaItem ->
+                    navController.navigate("detail/${mediaItem.id}")
+                },
+                onCameraClick = {
+                    navController.navigate("camera")
+                }
+            )
+        }
+
+        composable(
+            route = "detail/{mediaId}",
+            arguments = listOf(
+                navArgument("mediaId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val mediaId = backStackEntry.arguments?.getString("mediaId") ?: ""
+
+            DetailScreen(
+                mediaId = mediaId,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // Camera screen
+        composable("camera") {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                com.example.lumify.ui.camera.CameraScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onImageCaptured = { uri ->
+                        // Navigate back to gallery after capture
+                        navController.popBackStack()
+                        // Refresh media items to show newly captured photo
+                        mediaRepository.refreshMediaItems()
+                    }
+                )
+            } else {
+                // Fallback for older Android versions
+                Text("Camera not supported on this device version")
+            }
+        }
+    }
 }
