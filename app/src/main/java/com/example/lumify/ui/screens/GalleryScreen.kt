@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Camera
 import androidx.compose.material.icons.filled.Filter
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.CircularProgressIndicator
@@ -34,6 +35,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
@@ -41,17 +43,12 @@ import com.example.lumify.data.model.MediaItem
 import com.example.lumify.ui.components.StaggeredMediaGrid
 import com.example.lumify.ui.theme.LumifyTheme
 
-/**
- * Simple gallery screen that displays a grid of photos
- */
-/**
- * Redesigned gallery screen that displays photos in a Pinterest-like staggered grid
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GalleryScreen(
-    viewModel: GalleryViewModel,
+    viewModel: GalleryViewModel = hiltViewModel(),
     onPhotoClick: (MediaItem) -> Unit,
+    onCameraClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     // Collect state from ViewModel
@@ -62,7 +59,7 @@ fun GalleryScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("My Studio") },
+                title = { Text("Lumify") },
                 actions = {
                     IconButton(onClick = { /* Filter action */ }) {
                         Icon(
@@ -86,13 +83,13 @@ fun GalleryScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { /* Camera/Add action */ },
+                onClick = { onCameraClick() },
                 containerColor = MaterialTheme.colorScheme.surface,
                 contentColor = MaterialTheme.colorScheme.onSurface
             ) {
                 Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Add Photo"
+                    imageVector = Icons.Default.Camera,
+                    contentDescription = "Take Photo"
                 )
             }
         }
@@ -102,6 +99,7 @@ fun GalleryScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
+            // Rest of the function remains the same
             if (isLoading && mediaItems.isEmpty()) {
                 // Show loading indicator
                 CircularProgressIndicator(

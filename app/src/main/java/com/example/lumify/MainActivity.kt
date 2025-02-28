@@ -37,6 +37,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.lumify.data.repository.MediaRepository
+import com.example.lumify.ui.navigation.LumifyNavGraph
 import com.example.lumify.ui.screens.DetailScreen
 import com.example.lumify.ui.theme.LumifyTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -117,43 +118,9 @@ fun LumifyApp(mediaRepository: MediaRepository) {
         )
     }
 
-    // Navigation
-    NavHost(
+    // Use our NavGraph for navigation
+    LumifyNavGraph(
         navController = navController,
-        startDestination = "gallery"
-    ) {
-        composable("gallery") {
-            val galleryViewModel = hiltViewModel<GalleryViewModel>()
-
-            // If permissions were just granted, trigger a reload
-            LaunchedEffect(permissionJustGranted) {
-                if (permissionJustGranted) {
-                    galleryViewModel.loadMediaItems()
-                    permissionJustGranted = false
-                }
-            }
-
-            GalleryScreen(
-                viewModel = galleryViewModel,
-                onPhotoClick = { mediaItem ->
-                    navController.navigate("detail/${mediaItem.id}")
-                }
-            )
-        }
-
-        composable(
-            route = "detail/{mediaId}",
-            arguments = listOf(
-                navArgument("mediaId") { type = NavType.StringType }
-            )
-        ) { backStackEntry ->
-            val mediaId = backStackEntry.arguments?.getString("mediaId") ?: ""
-
-            DetailScreen(
-                mediaId = mediaId,
-                mediaRepository = mediaRepository,
-                onBackClick = { navController.popBackStack() }
-            )
-        }
-    }
+        mediaRepository = mediaRepository
+    )
 }

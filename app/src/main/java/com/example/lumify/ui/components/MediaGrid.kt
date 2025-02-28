@@ -21,6 +21,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import coil.compose.AsyncImagePainter
 import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
@@ -46,6 +47,7 @@ fun MediaGridItem(
             .clip(MaterialTheme.shapes.medium)
             .clickable(onClick = onClick)
     ) {
+
         SubcomposeAsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
                 .data(photo.uri)
@@ -73,11 +75,11 @@ fun MediaGridItem(
                     )
                 }
             } else if (state is AsyncImagePainter.State.Success) {
-                // Calculate and store the aspect ratio once the image is loaded
+                // calculate aspect ratio here...
                 state.result.drawable.let { drawable ->
                     if (drawable.intrinsicWidth > 0 && drawable.intrinsicHeight > 0) {
                         val imageAspectRatio = drawable.intrinsicWidth.toFloat() / drawable.intrinsicHeight.toFloat()
-                        // Only update if significantly different to avoid recomposition loops
+                        // to fix recomp issues
                         if (kotlin.math.abs(imageAspectRatio - aspectRatio) > 0.01f) {
                             aspectRatio = imageAspectRatio
                         }
@@ -96,7 +98,7 @@ fun MediaGridItemPreview() {
         // Create a sample media item for preview
         val samplePhoto = MediaItem(
             id = "1",
-            uri = Uri.parse("https://example.com/sample.jpg"),
+            uri = Uri.parse("https://picsum.photos/200/300"),
             name = "Sample Photo"
         )
 

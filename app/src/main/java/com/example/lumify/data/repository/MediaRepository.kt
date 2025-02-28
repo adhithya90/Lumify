@@ -10,10 +10,16 @@ import androidx.core.database.getIntOrNull
 import androidx.core.database.getLongOrNull
 import com.example.lumify.data.model.MediaItem
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -32,13 +38,6 @@ class MediaRepository @Inject constructor(
 ) {
     private val contentResolver: ContentResolver = context.contentResolver
 
-    /**
-     * Gets all photos from the device
-     */
-    fun getMediaItems(): Flow<List<MediaItem>> = flow {
-        val mediaItems = queryMediaItems()
-        emit(mediaItems)
-    }.flowOn(Dispatchers.IO)
 
     /**
      * Query media store for all photos
@@ -108,5 +107,39 @@ class MediaRepository @Inject constructor(
             uri = uri,
             name = "Photo $id"
         )
+    }
+
+    /**
+     * Manually refresh the media items - useful after capturing a new photo
+     */
+    fun refreshMediaItems() {
+        viewModelScope.launch(Dispatchers.IO) {
+            // Simply emit a new list of items from the query
+            val updatedItems = queryMediaItems()
+            mediaItemsFlow.value = updatedItems
+        }
+    }
+
+    // Add this property to the class to manage the flow
+    private val mediaItemsFlow = MutableStateFlow<List<MediaItem>>(emptyList())
+
+    // Update the getMediaItems() method to use our flow
+    fun getMediaItems(): Flow<List<MediaItem>> {
+        // If the flow is empty, load items
+        if (mediaItemsFlow.value.isEmpty()) {
+            viewModelScope.launch(Dispatchers.IO) {
+                val items = queryMediaItems()
+                mediaItemsFlow.value = items
+            }
+        }
+        return mediaItemsFlow.asStateFlow()
+    }
+
+    // Add ViewModel scope to the class
+    private val viewModelScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    // Override close method to clean up resources
+    fun close() {
+        viewModelScope.cancel()
     }
 }
