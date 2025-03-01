@@ -179,8 +179,8 @@ fun DetailScreen(
     // Fully immersive edge-to-edge layout
     Box(
         modifier = modifier
-            .padding(WindowInsets.statusBars.asPaddingValues())
             .fillMaxSize()
+            .padding(WindowInsets.statusBars.asPaddingValues())
             .background(Color.Black),
         contentAlignment = Alignment.Center
     ) {
@@ -212,7 +212,7 @@ fun DetailScreen(
                         CircularProgressIndicator(color = Color.White)
                     },
                     colorFilter = selectedFilter.colorFilter,
-                    modifier = Modifier.fillMaxSize()
+
                 )
 
                 // Overlay controls - minimal UI
@@ -222,8 +222,7 @@ fun DetailScreen(
                     // Top action bar - minimal with just icons
                     Row(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                            .fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         // Back button - no background

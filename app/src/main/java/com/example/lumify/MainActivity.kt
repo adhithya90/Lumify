@@ -29,27 +29,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
+
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
+
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import androidx.core.view.WindowCompat
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavType
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
+
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
+
 import com.example.lumify.data.repository.MediaRepository
 import com.example.lumify.ui.components.BottomNavItem
 import com.example.lumify.ui.components.LumifyBottomNavigation
 import com.example.lumify.ui.navigation.LumifyNavGraph
-import com.example.lumify.ui.screens.DetailScreen
+
 import com.example.lumify.ui.theme.LumifyTheme
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -139,11 +132,12 @@ fun LumifyApp(mediaRepository: MediaRepository) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: BottomNavItem.HOME.route
 
-    // Check if we're on camera screen
+    // Check if we're on camera screen or detail screen
     val isOnCameraScreen = currentRoute == "camera"
+    val isOnDetailScreen = currentRoute?.startsWith("detail/") ?: false
 
-    // Only show bottom navigation when not on the camera screen
-    val showBottomBar = !isOnCameraScreen
+    // Only show bottom navigation when not on the camera screen or detail screen
+    val showBottomBar = !isOnCameraScreen && !isOnDetailScreen
 
     Scaffold(
         containerColor = Color.Black, // Black background for the entire app
@@ -171,7 +165,7 @@ fun LumifyApp(mediaRepository: MediaRepository) {
             }
         }
     ) { innerPadding ->
-        // Apply padding only if we're not on the camera screen
+        // Apply padding only if we're showing the bottom bar
         val contentModifier = if (showBottomBar) {
             Modifier.padding(innerPadding)
         } else {
