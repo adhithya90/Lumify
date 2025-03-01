@@ -10,40 +10,49 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+
+
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.FilterAlt
-import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Favorite
+
+import androidx.compose.material.icons.filled.MoreVert
+
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
+
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
+
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
+
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -67,19 +76,17 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
-import com.example.lumify.data.model.MediaItem
+
 import com.example.lumify.data.model.PhotoFilter
 import com.example.lumify.data.model.PhotoFilters
-import com.example.lumify.data.repository.MediaRepository
-import com.example.lumify.ui.components.PhotoFilterBottomSheet
+
 import com.example.lumify.ui.theme.LumifyTheme
 import kotlinx.coroutines.launch
 
 /**
- * Enhanced detail screen that displays a photo full-screen with filtering capabilities
- * Filters are displayed at the bottom and applied directly to the main image
+ * Immersive detail screen that displays a photo edge-to-edge with subtle overlay controls
+ * and a transparent filter strip at the bottom
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DetailScreen(
     mediaId: String,
@@ -115,12 +122,16 @@ fun DetailScreen(
                 viewModel.resetFilterProcessState()
                 showSaveDialog = false
             }
+
             is DetailViewModel.FilterProcessState.Error -> {
-                errorMessage = (filterProcessState as DetailViewModel.FilterProcessState.Error).message
+                errorMessage =
+                    (filterProcessState as DetailViewModel.FilterProcessState.Error).message
                 showErrorDialog = true
                 viewModel.resetFilterProcessState()
             }
-            else -> { /* No action needed */ }
+
+            else -> { /* No action needed */
+            }
         }
     }
 
@@ -165,126 +176,108 @@ fun DetailScreen(
         )
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = mediaItem?.name ?: "Photo",
-                        color = Color.White
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color.White
-                        )
-                    }
-                },
-                actions = {
-                    // Share button (placeholder for future implementation)
-                    IconButton(onClick = { /* Future implementation */ }) {
-                        Icon(
-                            imageVector = Icons.Default.Share,
-                            contentDescription = "Share",
-                            tint = Color.White
-                        )
-                    }
-
-                    // Save button
-                    IconButton(
-                        onClick = {
-                            if (selectedFilter.id != PhotoFilters.ORIGINAL.id) {
-                                showSaveDialog = true
-                            } else {
-                                scope.launch {
-                                    snackbarHostState.showSnackbar("No filter changes to save")
-                                }
-                            }
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Save,
-                            contentDescription = "Save",
-                            tint = Color.White
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Black.copy(alpha = 0.7f)
-                )
+    // Fully immersive edge-to-edge layout
+    Box(
+        modifier = modifier
+            .padding(WindowInsets.statusBars.asPaddingValues())
+            .fillMaxSize()
+            .background(Color.Black),
+        contentAlignment = Alignment.Center
+    ) {
+        if (isLoading) {
+            CircularProgressIndicator(
+                color = Color.White,
+                modifier = Modifier.size(42.dp)
             )
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { padding ->
-        Box(
-            modifier = modifier
-                .fillMaxSize()
-                .background(Color.Black),
-            contentAlignment = Alignment.Center
-        ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    color = Color.White
+        } else if (error != null) {
+            Text(
+                text = error ?: "Unknown error",
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center,
+                color = Color.White,
+                modifier = Modifier.padding(16.dp)
+            )
+        } else {
+            val currentMediaItem = mediaItem
+            if (currentMediaItem != null) {
+                // Full screen image with filter applied
+                SubcomposeAsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(currentMediaItem.uri)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    loading = {
+                        CircularProgressIndicator(color = Color.White)
+                    },
+                    colorFilter = selectedFilter.colorFilter,
+                    modifier = Modifier.fillMaxSize()
                 )
-            } else if (error != null) {
-                Text(
-                    text = error ?: "Unknown error",
-                    style = MaterialTheme.typography.bodyLarge,
-                    textAlign = TextAlign.Center,
-                    color = Color.White,
-                    modifier = Modifier.padding(16.dp)
-                )
-            } else {
-                val currentMediaItem = mediaItem
-                if (currentMediaItem != null) {
-                    // Main image with filter applied
-                    SubcomposeAsyncImage(
-                        model = ImageRequest.Builder(LocalContext.current)
-                            .data(currentMediaItem.uri)
-                            .crossfade(true)
-                            .build(),
-                        contentDescription = currentMediaItem.name,
-                        contentScale = ContentScale.Fit,
-                        loading = {
-                            CircularProgressIndicator(color = Color.White)
-                        },
-                        colorFilter = selectedFilter.colorFilter,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(padding)
-                    )
 
-                    // Filter strip at the bottom
-                    Column(
+                // Overlay controls - minimal UI
+                Box(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    // Top action bar - minimal with just icons
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        // Back button - no background
+                        IconButton(
+                            onClick = onBackClick,
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = Color.White,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+
+                        // Heart icon
+                        IconButton(onClick = { /* Future implementation */ }) {
+                            Icon(
+                                imageVector = Icons.Outlined.Favorite,
+                                tint = Color.White,
+                                contentDescription = "Favorite",
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+
+                        // Share button
+                        IconButton(onClick = { /* Future implementation */ }) {
+                            Icon(
+                                imageVector = Icons.Default.Share,
+                                contentDescription = "Share",
+                                tint = Color.White,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+
+                        // Three dots menu
+                        IconButton(onClick = { /* Future implementation */ }) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "More options",
+                                tint = Color.White,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                    }
+
+                    // Bottom section with filter thumbnails
+                    Box(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .fillMaxWidth()
-                            .background(Color.Black.copy(alpha = 0.8f))
-                            .padding(bottom = 16.dp, top = 12.dp)
+                            .background(Color.Black)
+                            .padding(vertical = 12.dp)
                     ) {
-                        // Filter name and description
-                        Text(
-                            text = selectedFilter.name,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            modifier = Modifier.padding(horizontal = 16.dp)
-                        )
-
-                        Text(
-                            text = selectedFilter.description,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.8f),
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        // Filter thumbnails
-                        FiltersRow(
+                        ImmersiveFiltersRow(
                             imageUri = currentMediaItem.uri.toString(),
                             selectedFilter = selectedFilter,
                             onFilterSelected = { filter ->
@@ -318,21 +311,29 @@ fun DetailScreen(
                             }
                         }
                     }
-                } else {
-                    Text(
-                        text = "Photo not found",
-                        style = MaterialTheme.typography.bodyLarge,
-                        textAlign = TextAlign.Center,
-                        color = Color.White
-                    )
                 }
+
+                // Snackbar host
+                SnackbarHost(
+                    hostState = snackbarHostState,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 100.dp) // Position above the filter strip
+                )
+            } else {
+                Text(
+                    text = "Photo not found",
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center,
+                    color = Color.White
+                )
             }
         }
     }
 }
 
 @Composable
-fun FiltersRow(
+fun ImmersiveFiltersRow(
     imageUri: String,
     selectedFilter: PhotoFilter,
     onFilterSelected: (PhotoFilter) -> Unit,
@@ -352,12 +353,12 @@ fun FiltersRow(
 
     LazyRow(
         state = listState,
-        contentPadding = PaddingValues(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(8.dp, 24.dp, 8.dp, 24.dp),
+        horizontalArrangement = Arrangement.spacedBy(0.dp),
         modifier = modifier.fillMaxWidth()
     ) {
         items(PhotoFilters.FILTERS) { filter ->
-            FilterThumbnail(
+            ImmersiveFilterThumbnail(
                 filter = filter,
                 imageUri = imageUri,
                 isSelected = filter.id == selectedFilter.id,
@@ -368,7 +369,7 @@ fun FiltersRow(
 }
 
 @Composable
-fun FilterThumbnail(
+fun ImmersiveFilterThumbnail(
     filter: PhotoFilter,
     imageUri: String,
     isSelected: Boolean,
@@ -378,17 +379,18 @@ fun FilterThumbnail(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
-            .width(70.dp)
+            .width(92.dp)
             .clickable(onClick = onClick)
+            .padding(horizontal = 4.dp)
     ) {
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .size(60.dp)
+                .size(84.dp)
                 .border(
-                    width = if (isSelected) 2.dp else 1.dp,
-                    color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray,
-                    shape = RoundedCornerShape(8.dp)
+                    width = if (isSelected) 2.dp else 0.dp,
+                    color = if (isSelected) Color.White else Color.Transparent,
+                    shape = RoundedCornerShape(4.dp)
                 )
                 .padding(2.dp)
         ) {
@@ -406,23 +408,23 @@ fun FilterThumbnail(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(1f)
-                    .clip(RoundedCornerShape(6.dp))
+                    .clip(RoundedCornerShape(2.dp))
             )
 
             // Selection indicator
             if (isSelected) {
                 Box(
                     modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .size(16.dp)
-                        .background(MaterialTheme.colorScheme.primary, CircleShape),
+                        .align(Alignment.Center)
+                        .size(24.dp)
+                        .background(Color.Black.copy(alpha = 0.5f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Check,
                         contentDescription = "Selected",
                         tint = Color.White,
-                        modifier = Modifier.size(10.dp)
+                        modifier = Modifier.size(16.dp)
                     )
                 }
             }
@@ -435,7 +437,7 @@ fun FilterThumbnail(
             text = filter.name,
             style = MaterialTheme.typography.labelSmall,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.White,
+            color = Color.White,
             textAlign = TextAlign.Center,
             maxLines = 1,
             fontSize = 10.sp
@@ -443,23 +445,10 @@ fun FilterThumbnail(
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun FiltersRowPreview() {
-    LumifyTheme {
-        Surface(color = Color.Black) {
-            FiltersRow(
-                imageUri = "",
-                selectedFilter = PhotoFilters.ORIGINAL,
-                onFilterSelected = {}
-            )
-        }
-    }
-}
 
 @Preview(showBackground = true)
 @Composable
-fun DetailScreenPreview() {
+fun ImmersiveDetailScreenPreview() {
     LumifyTheme {
         Box(
             modifier = Modifier
@@ -467,11 +456,120 @@ fun DetailScreenPreview() {
                 .background(Color.Black),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = "Photo Detail Preview",
-                color = Color.White,
-                modifier = Modifier.align(Alignment.Center)
+            // Simulate the image
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.DarkGray)
             )
+
+            // Top controls - more minimal like in reference image
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                IconButton(onClick = { }) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Color.White,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+
+                IconButton(onClick = { }) {
+                    Icon(
+                        imageVector = Icons.Default.Favorite,
+                        contentDescription = "Favorite",
+                        tint = Color.White,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+
+                IconButton(onClick = { }) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "More options",
+                        tint = Color.White,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+
+                IconButton(onClick = { }) {
+                    Icon(
+                        imageVector = Icons.Default.Share,
+                        contentDescription = "Share",
+                        tint = Color.White,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            }
+
+            // Bottom filter strip
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .background(Color.Black)
+                    .padding(vertical = 12.dp)
+            ) {
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(5) { index ->
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .width(92.dp)
+                                .padding(horizontal = 4.dp)
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier
+                                    .size(84.dp)
+                                    .border(
+                                        width = if (index == 0) 2.dp else 0.dp,
+                                        color = if (index == 0) Color.White else Color.Transparent,
+                                        shape = RoundedCornerShape(4.dp)
+                                    )
+                                    .background(Color.Gray.copy(alpha = 0.3f))
+                            ) {
+                                if (index == 0) {
+                                    Box(
+                                        modifier = Modifier
+                                            .align(Alignment.Center)
+                                            .size(24.dp)
+                                            .background(
+                                                Color.Black.copy(alpha = 0.5f),
+                                                CircleShape
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = "Selected",
+                                            tint = Color.White,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            Text(
+                                text = if (index == 0) "Original" else "Filter ${index + 1}",
+                                color = Color.White,
+                                fontSize = 10.sp,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
