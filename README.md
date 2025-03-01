@@ -2,9 +2,11 @@
 
 Lumify is a modern Android photo gallery application built with Jetpack Compose, following the latest Android development best practices. It enables users to browse their photos, view them in detail, apply professional-looking filters, and capture new images.
 
-![Gallery Screen](/screenshots/homescreen.png)
-![Detail Screen](/screenshots/editscreen.png)
-![Camera Screen](/screenshots/camerascreen.png)
+<p align="center">
+  <img src="/screenshots/homescreen.png" width="30%" />
+  <img src="/screenshots/editscreen.png" width="30%" /> 
+  <img src="/screenshots/camerascreen.png" width="30%" />
+</p>
 
 ## Features
 
