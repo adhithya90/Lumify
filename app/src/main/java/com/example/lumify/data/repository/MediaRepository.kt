@@ -3,6 +3,7 @@ package com.example.lumify.data.repository
 import android.content.ContentResolver
 import android.content.ContentUris
 import android.content.Context
+import android.content.SharedPreferences
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
@@ -27,17 +28,23 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Simple repository for accessing media items on the device
- */
-/**
- * Simple repository for accessing media items on the device
+ * Repository for accessing media items on the device and tracking edited images
  */
 @Singleton
 class MediaRepository @Inject constructor(
-    private val context: Context
+    @ApplicationContext private val context: Context
 ) {
     private val contentResolver: ContentResolver = context.contentResolver
+    private val prefs: SharedPreferences = context.getSharedPreferences("lumify_prefs", Context.MODE_PRIVATE)
 
+    // Media items flow
+    private val mediaItemsFlow = MutableStateFlow<List<MediaItem>>(emptyList())
+
+    // Edited media items flow
+    private val editedMediaItemsFlow = MutableStateFlow<List<MediaItem>>(emptyList())
+
+    // Key prefix for tracking edited images in SharedPreferences
+    private val EDITED_IMAGE_KEY_PREFIX = "edited_image_"
 
     /**
      * Query media store for all photos
@@ -110,20 +117,50 @@ class MediaRepository @Inject constructor(
     }
 
     /**
-     * Manually refresh the media items - useful after capturing a new photo
+     * Mark an image as edited
      */
-    fun refreshMediaItems() {
+    fun markImageAsEdited(mediaId: String) {
+        prefs.edit().putBoolean("$EDITED_IMAGE_KEY_PREFIX$mediaId", true).apply()
+
+        // Refresh edited items list
+        refreshEditedMediaItems()
+    }
+
+    /**
+     * Check if an image has been edited
+     */
+    fun isImageEdited(mediaId: String): Boolean {
+        return prefs.getBoolean("$EDITED_IMAGE_KEY_PREFIX$mediaId", false)
+    }
+
+    /**
+     * Refresh edited media items
+     */
+    private fun refreshEditedMediaItems() {
         viewModelScope.launch(Dispatchers.IO) {
-            // Simply emit a new list of items from the query
-            val updatedItems = queryMediaItems()
-            mediaItemsFlow.value = updatedItems
+            val allItems = queryMediaItems()
+            val editedItems = allItems.filter { mediaItem ->
+                isImageEdited(mediaItem.id)
+            }
+            editedMediaItemsFlow.value = editedItems
         }
     }
 
-    // Add this property to the class to manage the flow
-    private val mediaItemsFlow = MutableStateFlow<List<MediaItem>>(emptyList())
+    /**
+     * Manually refresh all media items - useful after capturing a new photo
+     */
+    fun refreshMediaItems() {
+        viewModelScope.launch(Dispatchers.IO) {
+            // Update all media items
+            val updatedItems = queryMediaItems()
+            mediaItemsFlow.value = updatedItems
 
-    // Update the getMediaItems() method to use our flow
+            // Also refresh edited items
+            refreshEditedMediaItems()
+        }
+    }
+
+    // Get all media items
     fun getMediaItems(): Flow<List<MediaItem>> {
         // If the flow is empty, load items
         if (mediaItemsFlow.value.isEmpty()) {
@@ -135,11 +172,25 @@ class MediaRepository @Inject constructor(
         return mediaItemsFlow.asStateFlow()
     }
 
+    // Get only edited media items
+    fun getEditedMediaItems(): Flow<List<MediaItem>> {
+        // If the flow is empty, load items
+        if (editedMediaItemsFlow.value.isEmpty()) {
+            refreshEditedMediaItems()
+        }
+        return editedMediaItemsFlow.asStateFlow()
+    }
+
     // Add ViewModel scope to the class
     private val viewModelScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    // Override close method to clean up resources
+    // Clean up resources
     fun close() {
+        viewModelScope.cancel()
+    }
+
+    // Method needed to fix compiler error
+    fun cancel() {
         viewModelScope.cancel()
     }
 }

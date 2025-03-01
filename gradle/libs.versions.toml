@@ -11,12 +11,12 @@ kotlin = "1.9.22"
 # Core libraries
 core-ktx = "1.15.0"
 lifecycle = "2.8.7"
-activity-compose = "1.10.0"
+activity-compose = "1.10.1"
 compose-bom = "2025.02.00"
 material3 = "1.3.1"
 
 # Navigation
-navigation-compose = "2.8.7"
+navigation-compose = "2.8.8"
 
 # Image loading
 coil = "2.7.0"
@@ -81,6 +81,8 @@ androidx-test-ext = { group = "androidx.test.ext", name = "junit", version.ref =
 espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso" }
 compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
+
+
 
 [bundles]
 compose = [

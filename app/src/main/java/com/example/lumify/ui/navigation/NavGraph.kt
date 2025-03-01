@@ -3,6 +3,7 @@ package com.example.lumify.ui.navigation
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -11,6 +12,7 @@ import androidx.navigation.navArgument
 import com.example.lumify.data.repository.MediaRepository
 import com.example.lumify.ui.camera.CameraScreen
 import com.example.lumify.ui.screens.DetailScreen
+import com.example.lumify.ui.screens.EditedImagesScreen
 import com.example.lumify.ui.screens.GalleryScreen
 
 @RequiresApi(Build.VERSION_CODES.P)
@@ -18,20 +20,28 @@ import com.example.lumify.ui.screens.GalleryScreen
 fun LumifyNavGraph(
     navController: NavHostController,
     mediaRepository: MediaRepository,
+    modifier: Modifier = Modifier,
     startDestination: String = "gallery"
 ) {
     NavHost(
         navController = navController,
-        startDestination = startDestination
+        startDestination = startDestination,
+        modifier = modifier
     ) {
-        // Gallery screen
+        // Home (Gallery) screen
         composable("gallery") {
             GalleryScreen(
                 onPhotoClick = { mediaItem ->
                     navController.navigate("detail/${mediaItem.id}")
-                },
-                onCameraClick = {
-                    navController.navigate("camera")
+                }
+            )
+        }
+
+        // Edited Images screen
+        composable("edited") {
+            EditedImagesScreen(
+                onPhotoClick = { mediaItem ->
+                    navController.navigate("detail/${mediaItem.id}")
                 }
             )
         }

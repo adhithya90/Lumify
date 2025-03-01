@@ -98,6 +98,9 @@ dependencies {
     implementation(libs.androidx.camera.video)
     implementation(libs.accompanist.permissions)
 
+
+
+
 }
 
 // Allow references to generated code

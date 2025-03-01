@@ -57,6 +57,9 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 import kotlin.math.roundToInt
 import androidx.camera.viewfinder.compose.MutableCoordinateTransformer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 
 
 @RequiresApi(Build.VERSION_CODES.P)
@@ -139,216 +142,262 @@ fun CameraScreen(
         return
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { paddingValues ->
+    // Use Box directly for edge-to-edge experience
+    Box(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        // Camera Preview
+        surfaceRequest?.let { request ->
+            val coordinateTransformer = remember { androidx.camera.viewfinder.compose.MutableCoordinateTransformer() }
+
+            androidx.camera.compose.CameraXViewfinder(
+                surfaceRequest = request,
+                coordinateTransformer = coordinateTransformer,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .pointerInput(Unit) {
+                        detectTapGestures { tapCoords ->
+                            with(coordinateTransformer) {
+                                viewModel.tapToFocus(tapCoords.transform())
+                            }
+                            autofocusRequest = UUID.randomUUID() to tapCoords
+                        }
+                    }
+            )
+
+            // Tap to focus indicator
+            AnimatedVisibility(
+                visible = showAutofocusIndicator,
+                enter = fadeIn(),
+                exit = fadeOut(),
+                modifier = Modifier.offset {
+                    IntOffset(
+                        x = (autofocusCoords.x - 24.dp.toPx()).roundToInt(),
+                        y = (autofocusCoords.y - 24.dp.toPx()).roundToInt()
+                    )
+                }
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .border(2.dp, Color.White, CircleShape)
+                )
+            }
+        } ?: run {
+            // Show loading while camera initializes
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = Color.White)
+            }
+        }
+
+        // Camera Controls with insets padding for status bar
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .windowInsetsPadding(WindowInsets.statusBars)
         ) {
-            // Camera Preview
-            surfaceRequest?.let { request ->
-                val coordinateTransformer = remember { androidx.camera.viewfinder.compose.MutableCoordinateTransformer() }
-
-                androidx.camera.compose.CameraXViewfinder(
-                    surfaceRequest = request,
-                    coordinateTransformer = coordinateTransformer,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .pointerInput(Unit) {
-                            detectTapGestures { tapCoords ->
-                                with(coordinateTransformer) {
-                                    viewModel.tapToFocus(tapCoords.transform())
-                                }
-                                autofocusRequest = UUID.randomUUID() to tapCoords
-                            }
-                        }
-                )
-
-                // Tap to focus indicator
-                AnimatedVisibility(
-                    visible = showAutofocusIndicator,
-                    enter = fadeIn(),
-                    exit = fadeOut(),
-                    modifier = Modifier.offset {
-                        IntOffset(
-                            x = (autofocusCoords.x - 24.dp.toPx()).roundToInt(),
-                            y = (autofocusCoords.y - 24.dp.toPx()).roundToInt()
-                        )
-                    }
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .border(2.dp, Color.White, CircleShape)
-                    )
-                }
-            } ?: run {
-                // Show loading while camera initializes
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(color = Color.White)
-                }
-            }
-
-            // Camera Controls
-            CameraControls(
-                onCloseClick = onNavigateBack,
-                onCaptureClick = { viewModel.captureImage(context, context.mainExecutor) },
-                onSwitchCameraClick = { viewModel.toggleCamera() },
-                onFlashClick = { viewModel.toggleFlash() },
-                isCapturing = captureState is CameraViewModel.CaptureState.Capturing,
-                currentFlashMode = flashMode,
-                modifier = Modifier.fillMaxSize()
-            )
-        }
-    }
-}
-
-@Composable
-fun CameraControls(
-    onCloseClick: () -> Unit,
-    onCaptureClick: () -> Unit,
-    onSwitchCameraClick: () -> Unit,
-    onFlashClick: () -> Unit,
-    isCapturing: Boolean,
-    currentFlashMode: Int,
-    modifier: Modifier = Modifier
-) {
-    Box(modifier = modifier) {
-        // Top bar with close and flash buttons
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-                .align(Alignment.TopStart),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            IconButton(
-                onClick = onCloseClick,
+            // Top bar with close and flash buttons
+            Row(
                 modifier = Modifier
-                    .size(48.dp)
-                    .background(Color.Black.copy(alpha = 0.5f), CircleShape)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Back",
-                    tint = Color.White
-                )
-            }
-
-            IconButton(
-                onClick = onFlashClick,
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(Color.Black.copy(alpha = 0.5f), CircleShape)
-            ) {
-                val flashIcon = when (currentFlashMode) {
-                    androidx.camera.core.ImageCapture.FLASH_MODE_OFF -> Icons.Default.FlashOff
-                    androidx.camera.core.ImageCapture.FLASH_MODE_ON -> Icons.Default.FlashOn
-                    else -> Icons.Default.FlashAuto
-                }
-
-                Icon(
-                    imageVector = flashIcon,
-                    contentDescription = "Toggle Flash",
-                    tint = Color.White
-                )
-            }
-        }
-
-        // Bottom bar with capture and switch camera buttons
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp)
-                .align(Alignment.BottomCenter),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Spacer on the left for alignment
-            Spacer(modifier = Modifier.weight(1f))
-
-            // Capture button
-            Box(
-                modifier = Modifier
-                    .size(72.dp)
-                    .clip(CircleShape)
-                    .background(Color.White)
-                    .padding(5.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (isCapturing) Color.LightGray else Color.White
-                    )
-                    .clickable(enabled = !isCapturing) { onCaptureClick() },
-                contentAlignment = Alignment.Center
-            ) {
-                if (isCapturing) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(32.dp),
-                        color = Color.DarkGray,
-                        strokeWidth = 3.dp
-                    )
-                }
-            }
-
-            // Switch camera button
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .align(Alignment.CenterVertically),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .align(Alignment.TopStart),
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 IconButton(
-                    onClick = onSwitchCameraClick,
+                    onClick = onNavigateBack,
                     modifier = Modifier
                         .size(48.dp)
                         .background(Color.Black.copy(alpha = 0.5f), CircleShape)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Cameraswitch,
-                        contentDescription = "Switch Camera",
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Color.White
+                    )
+                }
+
+                IconButton(
+                    onClick = { viewModel.toggleFlash() },
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                ) {
+                    val flashIcon = when (flashMode) {
+                        androidx.camera.core.ImageCapture.FLASH_MODE_OFF -> Icons.Default.FlashOff
+                        androidx.camera.core.ImageCapture.FLASH_MODE_ON -> Icons.Default.FlashOn
+                        else -> Icons.Default.FlashAuto
+                    }
+
+                    Icon(
+                        imageVector = flashIcon,
+                        contentDescription = "Toggle Flash",
                         tint = Color.White
                     )
                 }
             }
+
+            // Bottom bar with capture and switch camera buttons
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp)
+                    .align(Alignment.BottomCenter),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Spacer on the left for alignment
+                Spacer(modifier = Modifier.weight(1f))
+
+                // Capture button
+                Box(
+                    modifier = Modifier
+                        .size(72.dp)
+                        .clip(CircleShape)
+                        .background(Color.White)
+                        .padding(5.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (captureState is CameraViewModel.CaptureState.Capturing)
+                                Color.LightGray
+                            else
+                                Color.White
+                        )
+                        .clickable(
+                            enabled = captureState !is CameraViewModel.CaptureState.Capturing
+                        ) {
+                            viewModel.captureImage(context, context.mainExecutor)
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (captureState is CameraViewModel.CaptureState.Capturing) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(32.dp),
+                            color = Color.DarkGray,
+                            strokeWidth = 3.dp
+                        )
+                    }
+                }
+
+                // Switch camera button
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .align(Alignment.CenterVertically),
+                    contentAlignment = Alignment.Center
+                ) {
+                    IconButton(
+                        onClick = { viewModel.toggleCamera() },
+                        modifier = Modifier
+                            .size(48.dp)
+                            .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Cameraswitch,
+                            contentDescription = "Switch Camera",
+                            tint = Color.White
+                        )
+                    }
+                }
+            }
         }
+
+        // Snackbar host for error messages
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 16.dp)
+        )
     }
 }
 
 @Preview(showBackground = true)
 @Composable
-fun CameraControlsPreview() {
+fun CameraScreenPreview() {
     LumifyTheme {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.3f))
+                .background(Color.Black),
         ) {
-            CameraControls(
-                onCloseClick = {},
-                onCaptureClick = {},
-                onSwitchCameraClick = {},
-                onFlashClick = {},
-                isCapturing = false,
-                currentFlashMode = androidx.camera.core.ImageCapture.FLASH_MODE_OFF,
-                modifier = Modifier.fillMaxSize()
-            )
-        }
-    }
-}
+            // Top controls
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                IconButton(
+                    onClick = { },
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Color.White
+                    )
+                }
 
-@Preview(showBackground = true)
-@Composable
-fun CameraPermissionScreenPreview() {
-    LumifyTheme {
-        CameraPermissionScreen(
-            onPermissionGranted = {}
-        )
+                IconButton(
+                    onClick = { },
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.FlashOff,
+                        contentDescription = "Flash",
+                        tint = Color.White
+                    )
+                }
+            }
+
+            // Bottom controls
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp)
+                    .align(Alignment.BottomCenter),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Spacer(modifier = Modifier.weight(1f))
+
+                // Capture button
+                Box(
+                    modifier = Modifier
+                        .size(72.dp)
+                        .clip(CircleShape)
+                        .background(Color.White)
+                )
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    IconButton(
+                        onClick = { },
+                        modifier = Modifier
+                            .size(48.dp)
+                            .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Cameraswitch,
+                            contentDescription = "Switch Camera",
+                            tint = Color.White
+                        )
+                    }
+                }
+            }
+        }
     }
 }
