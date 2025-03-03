@@ -86,16 +86,6 @@ Lumify is a modern Android photo gallery application built with Jetpack Compose,
 - JDK 11 or newer
 - Android SDK 21+
 
-### Setup
-1. Clone the repository:
-```
-git clone https://github.com/yourusername/lumify.git
-```
-
-2. Open the project in Android Studio.
-3. Sync the project with Gradle files.
-4. Run the app on an emulator or physical device.
-
 ## Permissions
 Lumify requires the following permissions:
 - `READ_EXTERNAL_STORAGE` or `READ_MEDIA_IMAGES` (Android 13+): For accessing device photos
